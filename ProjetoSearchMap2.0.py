@@ -1,6 +1,7 @@
 import os
 import tempfile
 import requests
+from qgis.utils import iface 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget
 from PyQt5.QtCore import Qt
 
@@ -37,6 +38,24 @@ class CatalogSelector(QWidget):
         self.catalog_list.addItem("CBERS - 4/WFI Data Cube")
         self.catalog_list.addItem("CBERS - 4 Mosaico do brasil")
         self.catalog_list.addItem("CBERS - 4A/WFI CLOUD")
+        self.catalog_list.addItem("CBERS - 4A/WFI mosaico da paraíba")
+        self.catalog_list.addItem("CBERS - 4A/WPM Multi bands")
+        self.catalog_list.addItem("CBERS - 4/WFI Data Cube - LCF 8 Dias")
+        self.catalog_list.addItem("GOES - 13 - Level 3 - VIS/IR (Binario)")
+        self.catalog_list.addItem("GOES - 16 CLOUD")
+        self.catalog_list.addItem("Landsat coleção 2 - Level-2")
+        self.catalog_list.addItem("Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias")
+        self.catalog_list.addItem("Landsat imagem mosaico do BRASIL - 6 meses")
+        self.catalog_list.addItem("Landsat imagem mosaico do bioma da Amazonia - 3 meses")
+        self.catalog_list.addItem("Sentinel-1 - Level-1 - Interferometric Wide Swath Ground Range Detected High Resolution")
+        self.catalog_list.addItem("Sentinel-2 - Level-1C")
+        self.catalog_list.addItem("Sentinel-2 - Level-2A")
+        self.catalog_list.addItem("Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF")
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses")
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 3 meses")
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 2 meses")
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 4 meses")
+        self.catalog_list.addItem("Sentinel-3/OLCI - Level-1B Full Resolution")
         layout.addWidget(self.catalog_list)
         
         # Botão para carregar imagens de acordo com o catálogo escolhido
@@ -487,29 +506,62 @@ class CatalogSelector(QWidget):
             catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4-MUX-L4-SR-1/items/{image_id}"
         elif selected_catalog == "CBERS - 4/MUX Data Cube":
             catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS4-MUX-2M-1/items{image_id}"
-        
+        elif selected_catalog == "CBERS - 4/WFI CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4-WFI-L4-SR-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/WFI Data Cube":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS4-WFI-16D-2/items/{image_id}"
+        elif selected_catalog == "CBERS - 4 Mosaico do brasil":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4-brazil-3m-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4A/WFI CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4A-WFI-L4-SR-1/items/{image_id}"
+        elif selected_catalog =="CBERS - 4A/WFI mosaico da paraíba":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4a-paraiba-3m-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4A/WPM Multi bands":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4A-WPM-PCA-FUSED-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/WFI Data Cube - LCF 8 Dias":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS-WFI-8D-1/items/{image_id}"
+        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/GOES13-L3-IMAGER-1/items/{image_id}"
+        elif selected_catalog == "GOES - 16 CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/GOES16-L2-CMI-1/items/{image_id}"
+        elif selected_catalog == "Landsat coleção 2 - Level-2":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/landsat-2/items/{image_id}"
+        elif selected_catalog == "Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/LANDSAT-16D-1/items/{image_id}"
+        elif selected_catalog == "Landsat imagem mosaico do BRASIL - 6 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-brazil-6m-1/items/{image_id}"
+        elif selected_catalog == "Landsat imagem mosaico do bioma da Amazonia - 3 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-amazon-3m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-1 - Level-1 - Interferometric Wide Swath Ground Range Detected High Resolution":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/sentinel-1-grd-bundle-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-1C":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L1C_BUNDLE-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-2A":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L2A_BUNDLE-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L2A-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-amazon-1m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 3 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-amazon-3m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 2 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-cerrado-2m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 4 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-cerrado-4m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/sentinel-3-olci-l1-bundle-1/items/{image_id}"
+            
         response = requests.get(catalog_url)
         image_data = response.json()
         
         if 'assets' in image_data and 'asset' in image_data['assets']:
             image_url = image_data['assets']['asset']['href']
-            zip_data = requests.get(image_url).content
             
-            # Salva o arquivo zip temporariamente em uma pasta temporária
-            temp_dir = tempfile.gettempdir()  # Diretório temporário
-            zip_path = os.path.join(temp_dir, "temp_image.zip")
-            with open(zip_path, 'wb') as zip_file:
-                zip_file.write(zip_data)
-            
-            # Carrega o arquivo .zip inteiro como camada raster no QGIS
-            zip_layer = QgsRasterLayer(f"zip://{zip_path}", "Imagem ZIP")
-
-            if zip_layer.isValid():
-                QgsProject.instance().addMapLayer(zip_layer)
-            else:
-                QMessageBox.critical(self, "Erro ao Carregar", "O arquivo ZIP não é válido ou não contém imagens geotiff.")
+            # Utilizando iface para adicionar a camada de imagem diretamente
+            iface.addRasterLayer(f"/vsicurl/{image_url}", "Imagem Raster")
         else:
-            QMessageBox.warning(self, "Imagem Indisponível", "Esta imagem não possui um arquivo ZIP disponível.")
+            QMessageBox.warning(self, "Imagem Indisponível", "Esta imagem não possui um arquivo .tif disponível.")
+
 
 # Inicialização do aplicativo PyQt5
 app = QApplication([])
