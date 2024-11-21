@@ -137,7 +137,7 @@ class CatalogSelector(QWidget):
             self.load_sentinel2_mosaic_cerrado4m_images(start_date, end_date)
         elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
             self.load_sentinel3_level1_images(start_date, end_date)
-            
+#%%            
     def load_amazonia1_WFI(self, start_date, end_date):
         """Função para carregar imagens do catálogo AMAZONIA-1/WFI - Level-4-SR - Cloud Optimized GeoTIFF"""
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/AMZ1-WFI-L4-SR-1/items" #Adicionar URL 
@@ -488,7 +488,7 @@ class CatalogSelector(QWidget):
             image_id = feature['id']
             image_date = feature['properties']['datetime']
             self.image_list.addItem(f"{image_id} | {image_date}")
-
+#%%
     def show_image(self):
         """Exibe o arquivo .zip completo dentro do QGIS."""
         selected_item = self.image_list.currentItem()
@@ -562,7 +562,7 @@ class CatalogSelector(QWidget):
         else:
             QMessageBox.warning(self, "Imagem Indisponível", "Esta imagem não possui um arquivo .tif disponível.")
 
-
+#%%
 # Inicialização do aplicativo PyQt5
 app = QApplication([])
 window = CatalogSelector()
