@@ -4,6 +4,7 @@ import requests
 from qgis.utils import iface 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget
 from PyQt5.QtCore import Qt
+from datetime import datetime
 
 class CatalogSelector(QWidget):
     def __init__(self):
@@ -31,15 +32,15 @@ class CatalogSelector(QWidget):
         
         # Lista de opções de catálogos específicos (exemplo)
         self.catalog_list = QListWidget()
-        self.catalog_list.addItem("Amazonia - 1/WFI")  #  catálogo
-        self.catalog_list.addItem("CBERS - 4/MUX CLOUD")  # catalogo
-        self.catalog_list.addItem("CBERS - 4/MUX Data Cube")
-        self.catalog_list.addItem("CBERS - 4/WFI CLOUD")
-        self.catalog_list.addItem("CBERS - 4/WFI Data Cube")
-        self.catalog_list.addItem("CBERS - 4 Mosaico do brasil")
-        self.catalog_list.addItem("CBERS - 4A/WFI CLOUD")
-        self.catalog_list.addItem("CBERS - 4A/WFI mosaico da paraíba")
-        self.catalog_list.addItem("CBERS - 4A/WPM Multi bands")
+        self.catalog_list.addItem("Amazonia - 1/WFI")  # APARECE
+        self.catalog_list.addItem("CBERS - 4/MUX CLOUD")  # APARECE
+        self.catalog_list.addItem("CBERS - 4/MUX Data Cube") # APARECE
+        self.catalog_list.addItem("CBERS - 4/WFI CLOUD") #Não aparece
+        self.catalog_list.addItem("CBERS - 4/WFI Data Cube") # não aparece
+        self.catalog_list.addItem("CBERS - 4 Mosaico do brasil") # nao aparece
+        self.catalog_list.addItem("CBERS - 4A/WFI CLOUD") # nao aparece imagens
+        self.catalog_list.addItem("CBERS - 4A/WFI mosaico da paraíba") # nao aparece
+        self.catalog_list.addItem("CBERS - 4A/WPM Multi bands") #nao aparece
         self.catalog_list.addItem("CBERS - 4/WFI Data Cube - LCF 8 Dias")
         self.catalog_list.addItem("GOES - 13 - Level 3 - VIS/IR (Binario)")
         self.catalog_list.addItem("GOES - 16 CLOUD")
@@ -49,13 +50,13 @@ class CatalogSelector(QWidget):
         self.catalog_list.addItem("Landsat imagem mosaico do bioma da Amazonia - 3 meses")
         self.catalog_list.addItem("Sentinel-1 - Level-1 - Interferometric Wide Swath Ground Range Detected High Resolution")
         self.catalog_list.addItem("Sentinel-2 - Level-1C")
-        self.catalog_list.addItem("Sentinel-2 - Level-2A")
-        self.catalog_list.addItem("Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF")
-        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses")
-        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 3 meses")
-        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 2 meses")
-        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 4 meses")
-        self.catalog_list.addItem("Sentinel-3/OLCI - Level-1B Full Resolution")
+        self.catalog_list.addItem("Sentinel-2 - Level-2A") # APARECE
+        self.catalog_list.addItem("Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF") # APARECE
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses") # APARECE
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da Amazonia - 3 meses") # APARECE
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 2 meses") # APARECE
+        self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 4 meses") # APARECE
+        self.catalog_list.addItem("Sentinel-3/OLCI - Level-1B Full Resolution") # APARECE
         layout.addWidget(self.catalog_list)
         
         # Botão para carregar imagens de acordo com o catálogo escolhido
@@ -76,68 +77,85 @@ class CatalogSelector(QWidget):
         layout.addWidget(self.show_image_button)
         
         self.setLayout(layout) 
-    
+
     def get_selected_dates(self):
-        start_date = self.start_calendar.selectedDate().toString("yyyy-MM-dd")
-        end_date = self.end_calendar.selectedDate().toString("yyyy-MM-dd")
+        start_date = self.start_calendar.selectedDate().toString("dd-MM-yyyy")
+        end_date = self.end_calendar.selectedDate().toString("dd-MM-yyyy")
         return start_date, end_date
     
+         
+    def convert_to_iso_format(self, date_str):
+        """Converte uma data no formato dd-MM-yyyy para o formato ISO yyyy-MM-dd."""
+        try:
+            date_obj = datetime.strptime(date_str, "%d-%m-%Y") 
+            return date_obj.strftime("%Y-%m-%d") 
+        except ValueError as e:
+            print(f"Erro na conversão da data: {e}")
+            return None
+     
     def load_images(self):
         """Carrega imagens do catálogo selecionado com o intervalo de datas fornecido."""
         selected_catalog = self.catalog_list.currentItem().text()
         start_date, end_date = self.get_selected_dates()
+
+        start_date_iso = self.convert_to_iso_format(start_date)
+        end_date_iso = self.convert_to_iso_format(end_date)
+
+        if not start_date_iso or not end_date_iso:
+            QMessageBox.warning(self, "Erro de data", "As datas inseridas são invalidas")
         
         if selected_catalog == "Amazonia - 1/WFI":
-            self.load_amazonia1_WFI(start_date, end_date)
+            self.load_amazonia1_WFI(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/MUX CLOUD":
-            self.load_cbers4a_mux_cloud_images(start_date, end_date)
+            self.load_cbers4a_mux_cloud_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/MUX Data Cube":
-            self.load_cbers4_mux_images(start_date, end_date)
+            self.load_cbers4_mux_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/WFI CLOUD":
-            self.load_cbers4_efi_cloud_images(start_date, end_date)
+            self.load_cbers4_efi_cloud_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/WFI Data Cube":
-            self.load_cbers4_wfi_images(start_date, end_date)
+            self.load_cbers4_wfi_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4 Mosaico do brasil":
-            self.load_cbers4_wfi_mosaic_images(start_date, end_date)
+            self.load_cbers4_wfi_mosaic_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4A/WFI CLOUD":
-            self.load_cbers4_wfi_cloud2_images(start_date, end_date)
+            self.load_cbers4_wfi_cloud2_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4A/WFI mosaico da paraíba":
-            self.load_cbers4_wfi_paraiba_images(start_date, end_date)
+            self.load_cbers4_wfi_paraiba_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4A/WPM Multi bands":
-            self.load_cbers4_wpm_images(start_date, end_date)
+            self.load_cbers4_wpm_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/WFI Data Cube - LCF 8 Dias":
-            self.load_cbers4_wfi_8d_images(start_date, end_date)
+            self.load_cbers4_wfi_8d_images(start_date_iso, end_date_iso)
         elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
-            self.load_goes_13_images(start_date, end_date)
+            self.load_goes_13_images(start_date_iso, end_date_iso)
         elif selected_catalog == "GOES - 16 CLOUD":
-            self.load_goes_16_images(start_date, end_date)
+            self.load_goes_16_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2":
-            self.load_landsat_level2_images(start_date, end_date)
+            self.load_landsat_level2_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias":
-            self.load_landsat_level2_16d_images(start_date, end_date)
+            self.load_landsat_level2_16d_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat imagem mosaico do BRASIL - 6 meses":
-            self.load_landsat_mosaic_images(start_date, end_date)
+            self.load_landsat_mosaic_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat imagem mosaico do bioma da Amazonia - 3 meses":
-            self.load_landsat_mosaic_amazonia_images(start_date, end_date)
+            self.load_landsat_mosaic_amazonia_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-1 - Level-1 - Interferometric Wide Swath Ground Range Detected High Resolution":
-            self.load_sentinel1_level1_images(start_date, end_date)
+            self.load_sentinel1_level1_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 - Level-1C":
-            self.load_sentinel2_level1c_images(start_date, end_date)
+            self.load_sentinel2_level1c_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 - Level-2A":
-            self.load_sentinel2a_images(start_date, end_date)
+            self.load_sentinel2a_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF":
-            self.load_sentinel2a_cloud_images(start_date, end_date)
+            self.load_sentinel2a_cloud_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses":
-            self.load_sentinel2_mosaic_amazonia1m_images(start_date, end_date)
+            self.load_sentinel2_mosaic_amazonia1m_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 3 meses":
-            self.load_sentinel2_mosaic_amazonia3m_images(start_date, end_date)
+            self.load_sentinel2_mosaic_amazonia3m_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 2 meses":
-            self.load_sentinel2_mosaic_cerrado2m_images(start_date, end_date)
+            self.load_sentinel2_mosaic_cerrado2m_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 4 meses":
-            self.load_sentinel2_mosaic_cerrado4m_images(start_date, end_date)
+            self.load_sentinel2_mosaic_cerrado4m_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
-            self.load_sentinel3_level1_images(start_date, end_date)
-            
+            self.load_sentinel3_level1_images(start_date_iso, end_date_iso)
+
+
     def load_amazonia1_WFI(self, start_date, end_date):
         """Função para carregar imagens do catálogo AMAZONIA-1/WFI - Level-4-SR - Cloud Optimized GeoTIFF"""
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/AMZ1-WFI-L4-SR-1/items" #Adicionar URL 
@@ -181,32 +199,65 @@ class CatalogSelector(QWidget):
             image_date = feature['properties']['datetime']
             self.image_list.addItem(f"{image_id} | {image_date}")
             
-    def load_cbers4_wfi_cloud_images(self, start_date, end_date):
+    def load_cbers4_efi_cloud_images(self, start_date, end_date):
         """Função para carregar imagens do catalogo CBERS-4/WFI - Level-4-SR - Cloud Optimized GeoTIFF."""
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/CB4-WFI-L4-SR-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
+        # Requisição à API
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
-            
+    
     def load_cbers4_wfi_images(self, start_date, end_date):
         """Função para carregar imagens do catalogo CBERS-4/WFI - Level-4-SR - Data Cube - LCF 16 days."""
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/CBERS4-WFI-16D-2/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_cbers4_wfi_mosaic_images(self, start_date, end_date):
@@ -214,13 +265,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4-brazil-3m-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_cbers4_wfi_cloud2_images(self, start_date, end_date):
@@ -228,13 +295,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/CB4A-WFI-L4-SR-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_cbers4_wfi_paraiba_images(self, start_date, end_date):
@@ -242,13 +325,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4a-paraiba-3m-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_cbers4_wpm_images(self, start_date, end_date):
@@ -256,13 +355,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/CB4A-WPM-PCA-FUSED-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_cbers4_wfi_8d_images(self, start_date, end_date):
@@ -270,13 +385,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/CBERS-WFI-8D-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_goes_13_images(self, start_date, end_date):
@@ -284,13 +415,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/GOES13-L3-IMAGER-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_goes_16_images(self, start_date, end_date):
@@ -298,13 +445,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/GOES16-L2-CMI-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_landsat_level2_images(self, start_date, end_date):
@@ -312,13 +475,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/landsat-2/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_landsat_level2_16d_images(self, start_date, end_date):
@@ -326,13 +505,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/LANDSAT-16D-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_landsat_mosaic_images(self, start_date, end_date):
@@ -340,13 +535,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-brazil-6m-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_landsat_mosaic_amazonia_images(self, start_date, end_date):
@@ -354,13 +565,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-amazon-3m-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_sentinel1_level1_images(self, start_date, end_date):
@@ -368,13 +595,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/sentinel-1-grd-bundle-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
             
     def load_sentinel2_level1c_images(self, start_date, end_date):
@@ -382,13 +625,29 @@ class CatalogSelector(QWidget):
         catalog_url = "https://data.inpe.br/bdc/stac/v1/collections/S2_L1C_BUNDLE-1/items"
         params = {'datetime': f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"}
         response = requests.get(catalog_url, params=params)
+        QgsMessageLog.logMessage("Status Code: {}".format(response.status_code), 'QGIS Log')
+        
+        # Verifica se a resposta foi bem-sucedida
+        if response.status_code != 200:
+            QgsMessageLog.logMessage("Erro na requisição: {}".format(response.text), 'QGIS Log')
+            QMessageBox.critical(self, "Erro", "Não foi possível obter dados do catálogo.")
+            return
+        
+        # Processar os dados retornados
         data = response.json()
+        features = data.get('features', [])
+        QgsMessageLog.logMessage("Quantidade de Imagens Encontradas: {}".format(len(features)), 'QGIS Log')
         
+        if not features:
+            QMessageBox.information(self, "Sem Imagens", "Não há imagens disponíveis para o intervalo de datas selecionado.")
+            return
+
         self.image_list.clear()
-        
-        for feature in data.get('feature', []):
+        for feature in features:
+            QgsMessageLog.logMessage("Feature: {}".format(feature), 'QGIS Log')  # Exibe cada item retornado
             image_id = feature['id']
             image_date = feature['properties']['datetime']
+            QgsMessageLog.logMessage(f"ID: {image_id}, Date: {image_date}", 'QGIS Log')
             self.image_list.addItem(f"{image_id} | {image_date}")
 
     def load_sentinel2a_images(self, start_date, end_date):
@@ -559,6 +818,7 @@ class CatalogSelector(QWidget):
             
             # Utilizando iface para adicionar a camada de imagem diretamente
             iface.addRasterLayer(f"/vsicurl/{image_url}", "Imagem Raster")
+            
         else:
             QMessageBox.warning(self, "Imagem Indisponível", "Esta imagem não possui um arquivo .tif disponível.")
 
