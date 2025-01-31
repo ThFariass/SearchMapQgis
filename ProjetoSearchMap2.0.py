@@ -1,10 +1,12 @@
 import os
+import zipfile
 import tempfile
 import requests
 from qgis.utils import iface 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget
 from PyQt5.QtCore import Qt
 from datetime import datetime
+from qgis.core import QgsRasterLayer, QgsProject
 
 class CatalogSelector(QWidget):
     def __init__(self):
@@ -75,6 +77,10 @@ class CatalogSelector(QWidget):
         self.show_image_button = QPushButton("Mostrar Imagem no QGIS")
         self.show_image_button.clicked.connect(self.show_image)
         layout.addWidget(self.show_image_button)
+
+        self.exit_button = QPushButton("Sair")
+        self.exit_button.clicked.connect(self.exit_application)
+        layout.addWidget(self.exit_button)
         
         self.setLayout(layout) 
 
@@ -92,7 +98,11 @@ class CatalogSelector(QWidget):
         except ValueError as e:
             print(f"Erro na conversão da data: {e}")
             return None
-     
+
+    def exit_application(self):
+        """Fecha apenas a janela do plugin."""
+        self.close()
+
     def load_images(self):
         """Carrega imagens do catálogo selecionado com o intervalo de datas fornecido."""
         selected_catalog = self.catalog_list.currentItem().text()
@@ -759,6 +769,8 @@ class CatalogSelector(QWidget):
         image_id = selected_item.text().split(" | ")[0]
         selected_catalog = self.catalog_list.currentItem().text()
         
+        catalog_url = None
+
         if selected_catalog == "Amazonia - 1/WFI":
             catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/AMZ1-WFI-L4-SR-1/items/{image_id}"
         elif selected_catalog == "CBERS - 4/MUX CLOUD":
@@ -810,17 +822,52 @@ class CatalogSelector(QWidget):
         elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
             catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/sentinel-3-olci-l1-bundle-1/items/{image_id}"
             
+        # Verifica se a URL do catálogo foi definida
+        if not catalog_url:
+            QMessageBox.warning(self, "Erro", "Catálogo não encontrado ou não suportado.")
+            return
+        
+        # Faz a requisição para obter os dados da imagem
         response = requests.get(catalog_url)
+        if response.status_code != 200:
+            QMessageBox.warning(self, "Erro", "Não foi possível obter os dados da imagem.")
+            return
+        
         image_data = response.json()
         
+        # Lógica original para .ZIP (funcionava antes)
         if 'assets' in image_data and 'asset' in image_data['assets']:
             image_url = image_data['assets']['asset']['href']
             
-            # Utilizando iface para adicionar a camada de imagem diretamente
             iface.addRasterLayer(f"/vsicurl/{image_url}", "Imagem Raster")
+
+
+            # Verifica se é .ZIP ou .COG
+            if image_url.endswith(".zip"):
+                # Abre o .ZIP como no código original
+                iface.addRasterLayer(f"/vsizip/{image_url}", "Imagem Raster")
+                return
+            else:
+                # Tenta abrir como COG
+                iface.addRasterLayer(f"/vsicurl/{image_url}", "Imagem Raster")
+                return
+        
+        # Se não tiver o asset 'asset', procura por COG ou ZIP manualmente
+        for asset_name, asset_info in image_data.get('assets', {}).items():
+            # Prioriza COG
+            if asset_info.get('type') == 'image/tiff; application=geotiff; profile=cloud-optimized':
+                cog_url = asset_info['href']
+                iface.addRasterLayer(f"/vsicurl/{cog_url}", f"COG: {image_id}")
+                return
             
-        else:
-            QMessageBox.warning(self, "Imagem Indisponível", "Esta imagem não possui um arquivo .tif disponível.")
+            # Verifica ZIP genérico
+            elif asset_info.get('type') == 'application/zip':
+                zip_url = asset_info['href']
+                iface.addRasterLayer(f"/vsizip/{zip_url}", f"ZIP: {image_id}")
+                return
+        
+        QMessageBox.warning(self, "Erro", "Nenhum arquivo .ZIP ou .COG válido encontrado.")
+
 
 
 # Inicialização do aplicativo PyQt5
