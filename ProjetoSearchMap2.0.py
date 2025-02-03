@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt
 from datetime import datetime
 from qgis.core import QgsRasterLayer, QgsProject
+import sys
 
 class CatalogSelector(QWidget):
     def __init__(self):
@@ -871,7 +872,7 @@ class CatalogSelector(QWidget):
 
 
 # Inicialização do aplicativo PyQt5
-app = QApplication([])
+#app = QApplication([])
 window = CatalogSelector()
 window.show()
-app.exec_()
+#app.exec()
