@@ -8,6 +8,8 @@ from PyQt5.QtCore import Qt
 from datetime import datetime
 from qgis.core import QgsRasterLayer, QgsProject
 import sys
+from tqdm import tqdm
+import time 
 
 class CatalogSelector(QWidget):
     def __init__(self):
@@ -84,6 +86,10 @@ class CatalogSelector(QWidget):
         layout.addWidget(self.exit_button)
         
         self.setLayout(layout) 
+
+    def minha_funcao():
+        for i in tqdm(range(10000), desc="Minha função"):
+            time.sleep(0.001)
 
     def get_selected_dates(self):
         start_date = self.start_calendar.selectedDate().toString("dd-MM-yyyy")
