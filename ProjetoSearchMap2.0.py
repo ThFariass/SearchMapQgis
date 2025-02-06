@@ -3,13 +3,45 @@ import zipfile
 import tempfile
 import requests
 from qgis.utils import iface 
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget
-from PyQt5.QtCore import Qt
-from datetime import datetime
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget, QProgressBar
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from time import sleep
 from qgis.core import QgsRasterLayer, QgsProject
 import sys
-from tqdm import tqdm
 import time 
+
+class WorkerThread(QThread):
+    progress_updated = pyqtSignal(int)
+    image_loaded = pyqtSignal(QPixmap)  # Sinal para a imagem carregada
+    finished_signal = pyqtSignal()
+
+    def __init__(self, image_path):
+        super().__init__()
+        self.image_path = image_path
+        self.pixmap = None  # Armazena a imagem carregada
+
+    def run(self):
+        try:
+            # Simulação de carregamento (substitua pelo seu código real)
+            total_steps = 100  # Ajuste conforme necessário
+            for i in range(total_steps):
+                sleep(0.05)  # Simula um trabalho
+                percentage = int((i + 1) / total_steps * 100)
+                self.progress_updated.emit(percentage)
+
+            # Carrega a imagem *após* a simulação
+            self.pixmap = QPixmap(self.image_path)
+            if self.pixmap.isNull():  # Verifica se a imagem foi carregada
+                print(f"Erro ao carregar a imagem: {self.image_path}")
+            else:
+                self.image_loaded.emit(self.pixmap)  # Emite o sinal com a imagem
+
+        except Exception as e:
+            print(f"Erro na thread: {e}")
+
+        finally:
+            self.finished_signal.emit()  # Sinaliza o fim do carregamento
+
 
 class CatalogSelector(QWidget):
     def __init__(self):
@@ -84,12 +116,31 @@ class CatalogSelector(QWidget):
         self.exit_button = QPushButton("Sair")
         self.exit_button.clicked.connect(self.exit_application)
         layout.addWidget(self.exit_button)
+
+                # Barra de progresso
+        self.progress_bar = QProgressBar()
+        layout.addWidget(self.progress_bar)
+        self.progress_bar.setMaximum(100)  # Valor máximo da barra (100%)
+        self.progress_bar.setValue(0)      # Valor inicial da barra (0%)
+
+        # Rótulo para exibir a porcentagem
+        self.percentage_label = QLabel("0%")
+        self.percentage_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.percentage_label)
+
+                # Inicialização da thread *AQUI*
+        self.worker_thread = WorkerThread("")  # Inicializa com um caminho vazio
+        self.worker_thread.progress_updated.connect(self.update_progress)
+        self.worker_thread.image_loaded.connect(self.display_image)  # Nova conexão
+        self.worker_thread.finished_signal.connect(self.loading_finished)
+
+        self.image_display = QLabel()  # Novo QLabel para exibir a imagem
+        layout.addWidget(self.image_display)  # Adicione ao layout
+        self.image_display.setAlignment(Qt.AlignCenter)  # Centraliza a imagem
+        self.image_display.setScaledContents(True)  # Ajusta a imagem ao tamanho do label
+
         
         self.setLayout(layout) 
-
-    def minha_funcao():
-        for i in tqdm(range(10000), desc="Minha função"):
-            time.sleep(0.001)
 
     def get_selected_dates(self):
         start_date = self.start_calendar.selectedDate().toString("dd-MM-yyyy")
@@ -141,10 +192,10 @@ class CatalogSelector(QWidget):
             self.load_cbers4_wpm_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/WFI Data Cube - LCF 8 Dias":
             self.load_cbers4_wfi_8d_images(start_date_iso, end_date_iso)
-        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
-            self.load_goes_13_images(start_date_iso, end_date_iso)
-        elif selected_catalog == "GOES - 16 CLOUD":
-            self.load_goes_16_images(start_date_iso, end_date_iso)
+#        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
+#            self.load_goes_13_images(start_date_iso, end_date_iso)
+#        elif selected_catalog == "GOES - 16 CLOUD":
+#            self.load_goes_16_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2":
             self.load_landsat_level2_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias":
@@ -171,7 +222,6 @@ class CatalogSelector(QWidget):
             self.load_sentinel2_mosaic_cerrado4m_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
             self.load_sentinel3_level1_images(start_date_iso, end_date_iso)
-
 
     def load_amazonia1_WFI(self, start_date, end_date):
         """Função para carregar imagens do catálogo AMAZONIA-1/WFI - Level-4-SR - Cloud Optimized GeoTIFF"""
@@ -769,6 +819,16 @@ class CatalogSelector(QWidget):
         """Exibe o arquivo .zip completo dentro do QGIS."""
         selected_item = self.image_list.currentItem()
         
+        if selected_item:
+            image_path = selected_item.text()  # Ou como você obtém o caminho da imagem
+
+            self.worker_thread.image_path = image_path  # Define o caminho da imagem
+            self.worker_thread.start()  # Inicia a thread
+            self.show_image_button.setEnabled(False)  # Desabilita o botão
+
+            self.image_label.setText("Carregando imagem...")  # Mensagem de carregamento
+
+
         if not selected_item:
             QMessageBox.warning(self, "Seleção de Imagem", "Por favor, selecione uma imagem.")
             return
@@ -875,6 +935,20 @@ class CatalogSelector(QWidget):
         
         QMessageBox.warning(self, "Erro", "Nenhum arquivo .ZIP ou .COG válido encontrado.")
 
+    def display_image(self, pixmap):  # Método corrigido
+        if pixmap: # Verifica se pixmap é válido
+            self.image_display.setPixmap(pixmap)  # Define o Pixmap *na thread principal*
+            self.image_label.setText("Imagem carregada!")
+        else:
+            self.image_label.setText("Erro ao carregar a imagem!")
+
+    def update_progress(self, percentage):
+        self.progress_bar.setValue(percentage)
+        self.percentage_label.setText(f"{percentage}%")
+
+    def loading_finished(self):
+        self.load_images_button.setEnabled(True) # Reabilita o botão após o carregamento
+        print("Carregamento concluído!") # Ou qualquer outra ação que você precise
 
 
 # Inicialização do aplicativo PyQt5
