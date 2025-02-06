@@ -5,10 +5,12 @@ import requests
 from qgis.utils import iface 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QListWidget, QMessageBox, QCalendarWidget, QProgressBar
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QPixmap, QImageReader
 from time import sleep
 from qgis.core import QgsRasterLayer, QgsProject
 import sys
 import time 
+from datetime import datetime 
 
 class WorkerThread(QThread):
     progress_updated = pyqtSignal(int)
@@ -26,8 +28,9 @@ class WorkerThread(QThread):
             total_steps = 100  # Ajuste conforme necessário
             for i in range(total_steps):
                 sleep(0.05)  # Simula um trabalho
-                percentage = int((i + 1) / total_steps * 100)
-                self.progress_updated.emit(percentage)
+            percentage = 100  # Valor de exemplo
+            print(f"Valor da porcentagem na thread: {percentage}")
+            self.progress_updated.emit(percentage)
 
             # Carrega a imagem *após* a simulação
             self.pixmap = QPixmap(self.image_path)
@@ -141,6 +144,11 @@ class CatalogSelector(QWidget):
 
         
         self.setLayout(layout) 
+
+    def update_progress(self, percentage):
+        print(f"Valor da porcentagem recebido: {percentage}")
+        self.progress_bar.setValue(percentage)
+        self.percentage_label.setText(f"{percentage}%")
 
     def get_selected_dates(self):
         start_date = self.start_calendar.selectedDate().toString("dd-MM-yyyy")
@@ -822,9 +830,11 @@ class CatalogSelector(QWidget):
         if selected_item:
             image_path = selected_item.text()  # Ou como você obtém o caminho da imagem
 
+            self.progress_bar.setValue(0)
+            self.percentage_label.setText("0%")
             self.worker_thread.image_path = image_path  # Define o caminho da imagem
             self.worker_thread.start()  # Inicia a thread
-            self.show_image_button.setEnabled(False)  # Desabilita o botão
+            #self.show_image_button.setEnabled(False)  # Desabilita o botão
 
             self.image_label.setText("Carregando imagem...")  # Mensagem de carregamento
 
@@ -942,9 +952,7 @@ class CatalogSelector(QWidget):
         else:
             self.image_label.setText("Erro ao carregar a imagem!")
 
-    def update_progress(self, percentage):
-        self.progress_bar.setValue(percentage)
-        self.percentage_label.setText(f"{percentage}%")
+
 
     def loading_finished(self):
         self.load_images_button.setEnabled(True) # Reabilita o botão após o carregamento
