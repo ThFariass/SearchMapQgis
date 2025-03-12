@@ -27,7 +27,7 @@ class WorkerThread(QThread):
             # Simulação de carregamento (substitua pelo seu código real)
             total_steps = 100  # Ajuste conforme necessário
             for i in range(total_steps):
-                sleep(0.05)  # Simula um trabalho
+                sleep(0.05)
             percentage = 100  # Valor de exemplo
             print(f"Valor da porcentagem na thread: {percentage}")
             self.progress_updated.emit(percentage)
@@ -50,27 +50,31 @@ class CatalogSelector(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Catálogo de Imagens INPE")
-        self.setGeometry(200, 100, 700, 900)
+        self.setGeometry(200, 100, 900, 700)  # Ajustando tamanho para melhor visualização
         
-        layout = QVBoxLayout()
-
-        # Caixa de entrada para o intervalo de datas (calendário para data inicial e final)
-        self.date_label = QLabel("Selecione o intervalo de datas:")
-        layout.addWidget(self.date_label)
-
-        # Calendários para selecionar datas
+        # Layout principal HORIZONTAL (dividindo a janela em duas colunas)
+        main_layout = QHBoxLayout()
+        
+        # --------------- SEÇÃO ESQUERDA (Seleção de imagens) ---------------
+        self.left_layout = QVBoxLayout()
+        
+        # Caixa de entrada para o intervalo de datas
+        self.left_layout.addWidget(QLabel("Selecione o intervalo de datas:"))
+        
+        # Criar calendários para datas
         self.start_calendar = QCalendarWidget()
         self.end_calendar = QCalendarWidget()
-        layout.addWidget(QLabel("Data inicial:"))
-        layout.addWidget(self.start_calendar)
-        layout.addWidget(QLabel("Data final:"))
-        layout.addWidget(self.end_calendar)
-
-        # Lista de catálogos específicos
-        self.catalog_label = QLabel("Selecione um Catálogo:")
-        layout.addWidget(self.catalog_label)
         
-        # Lista de opções de catálogos específicos (exemplo)
+        self.left_layout.addWidget(QLabel("Data inicial:"))
+        self.left_layout.addWidget(self.start_calendar)
+        self.left_layout.addWidget(QLabel("Data final:"))
+        self.left_layout.addWidget(self.end_calendar)
+
+        # Lista de catálogos
+        self.left_layout.addWidget(QLabel("Selecione um Catálogo:"))
+        self.catalog_list = QListWidget()
+        
+        # Adicionando algumas opções (adicione mais conforme necessário)
         self.catalog_list = QListWidget()
         self.catalog_list.addItem("Amazonia - 1/WFI")  # APARECE
         self.catalog_list.addItem("CBERS - 4/MUX CLOUD")  # APARECE
@@ -97,39 +101,38 @@ class CatalogSelector(QWidget):
         self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 2 meses") # APARECE
         self.catalog_list.addItem("Sentinel-2 image mosaico do bioma da cerrado - 4 meses") # APARECE
         self.catalog_list.addItem("Sentinel-3/OLCI - Level-1B Full Resolution") # APARECE
-        layout.addWidget(self.catalog_list)
+
         
-        # Botão para carregar imagens de acordo com o catálogo escolhido
+        self.left_layout.addWidget(self.catalog_list)
+
+        # Botão para carregar imagens
         self.load_images_button = QPushButton("Carregar Imagens do Catálogo")
-        self.load_images_button.clicked.connect(self.load_images)
-        layout.addWidget(self.load_images_button)
-        
-        # Lista de imagens
-        self.image_label = QLabel("Escolha uma Imagem:")
-        layout.addWidget(self.image_label)
-        
+        self.load_images_button.clicked.connect(self.load_images)  # Conectar o botão ao método
+        self.left_layout.addWidget(self.load_images_button)
+
+        # Lista de imagens carregadas
+        self.left_layout.addWidget(QLabel("Escolha uma Imagem:"))
         self.image_list = QListWidget()
-        layout.addWidget(self.image_list)
+        self.left_layout.addWidget(self.image_list)
 
-        # Botão de exibir imagem
+        # Botão para mostrar imagem no QGIS
         self.show_image_button = QPushButton("Mostrar Imagem no QGIS")
+        self.left_layout.addWidget(self.show_image_button)
+        print("Botão de mostrar imagem criado!")
         self.show_image_button.clicked.connect(self.show_image)
-        layout.addWidget(self.show_image_button)
 
-        self.exit_button = QPushButton("Sair")
-        self.exit_button.clicked.connect(self.exit_application)
-        layout.addWidget(self.exit_button)
 
-                # Barra de progresso
+
+        # Barra de progresso
         self.progress_bar = QProgressBar()
-        layout.addWidget(self.progress_bar)
-        self.progress_bar.setMaximum(100)  # Valor máximo da barra (100%)
-        self.progress_bar.setValue(0)      # Valor inicial da barra (0%)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0)
+        self.left_layout.addWidget(self.progress_bar)
 
-        # Rótulo para exibir a porcentagem
+        # Rótulo da porcentagem
         self.percentage_label = QLabel("0%")
         self.percentage_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.percentage_label)
+        self.left_layout.addWidget(self.percentage_label)       
 
                 # Inicialização da thread *AQUI*
         self.worker_thread = WorkerThread("")  # Inicializa com um caminho vazio
@@ -137,13 +140,34 @@ class CatalogSelector(QWidget):
         self.worker_thread.image_loaded.connect(self.display_image)  # Nova conexão
         self.worker_thread.finished_signal.connect(self.loading_finished)
 
-        self.image_display = QLabel()  # Novo QLabel para exibir a imagem
-        layout.addWidget(self.image_display)  # Adicione ao layout
-        self.image_display.setAlignment(Qt.AlignCenter)  # Centraliza a imagem
-        self.image_display.setScaledContents(True)  # Ajusta a imagem ao tamanho do label
+        # Botão de sair
+        self.exit_button = QPushButton("Sair")
+        self.exit_button.clicked.connect(self.close)
+        self.left_layout.addWidget(self.exit_button)
 
+        # --------------- SEÇÃO DIREITA (Visualização da imagem) ---------------
+        self.preview_group = QGroupBox("Pré-visualização da Imagem")
+        self.preview_layout = QVBoxLayout()
         
-        self.setLayout(layout) 
+        self.image_preview = QLabel("Nenhuma imagem selecionada")
+        self.image_preview.setAlignment(Qt.AlignCenter)
+        self.image_preview.setScaledContents(True)  # Para ajustar imagem dinamicamente
+        
+        # Ajustar tamanho fixo da visualização
+        self.image_preview.setFixedSize(350, 350)
+        
+        self.preview_layout.addWidget(self.image_preview)
+        self.preview_group.setLayout(self.preview_layout)
+
+        # Adicionar os layouts ao layout horizontal principal
+        main_layout.addLayout(self.left_layout)  # Parte dos controles
+        main_layout.addWidget(self.preview_group)  # Lado direito: Pré-visualização
+
+        # Definir o layout na interface
+        self.setLayout(main_layout)
+
+        # Conectar eventos
+        self.image_list.itemSelectionChanged.connect(self.preview_selected_image)
 
     def update_progress(self, percentage):
         print(f"Valor da porcentagem recebido: {percentage}")
@@ -200,10 +224,10 @@ class CatalogSelector(QWidget):
             self.load_cbers4_wpm_images(start_date_iso, end_date_iso)
         elif selected_catalog == "CBERS - 4/WFI Data Cube - LCF 8 Dias":
             self.load_cbers4_wfi_8d_images(start_date_iso, end_date_iso)
-#        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
-#            self.load_goes_13_images(start_date_iso, end_date_iso)
-#        elif selected_catalog == "GOES - 16 CLOUD":
-#            self.load_goes_16_images(start_date_iso, end_date_iso)
+        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
+            self.load_goes_13_images(start_date_iso, end_date_iso)
+        elif selected_catalog == "GOES - 16 CLOUD":
+            self.load_goes_16_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2":
             self.load_landsat_level2_images(start_date_iso, end_date_iso)
         elif selected_catalog == "Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias":
@@ -830,13 +854,18 @@ class CatalogSelector(QWidget):
         if selected_item:
             image_path = selected_item.text()  # Ou como você obtém o caminho da imagem
 
+            self.worker_thread = WorkerThread(image_path)
+            
+            # Conectando sinais
+            self.worker_thread.progress_updated.connect(self.update_progress)
+            self.worker_thread.image_loaded.connect(self.display_image)
+            self.worker_thread.finished_signal.connect(self.loading_finished)
+            
             self.progress_bar.setValue(0)
             self.percentage_label.setText("0%")
-            self.worker_thread.image_path = image_path  # Define o caminho da imagem
-            self.worker_thread.start()  # Inicia a thread
-            #self.show_image_button.setEnabled(False)  # Desabilita o botão
-
-            self.image_label.setText("Carregando imagem...")  # Mensagem de carregamento
+            self.worker_thread.start()  # Inicia a nova thread
+            #self.show_image_button.setEnabled(False)  # Desabilita enquanto carrega
+            self.image_preview.setText("Carregando imagem...")  # Atualiza visual
 
 
         if not selected_item:
@@ -911,7 +940,7 @@ class CatalogSelector(QWidget):
             return
         
         image_data = response.json()
-        
+        import gzip
         # Lógica original para .ZIP (funcionava antes)
         if 'assets' in image_data and 'asset' in image_data['assets']:
             image_url = image_data['assets']['asset']['href']
@@ -924,9 +953,13 @@ class CatalogSelector(QWidget):
                 # Abre o .ZIP como no código original
                 iface.addRasterLayer(f"/vsizip/{image_url}", "Imagem Raster")
                 return
-            else:
-                # Tenta abrir como COG
+            # Tenta abrir como COG
+            elif image_url.endswith(".cog"):
                 iface.addRasterLayer(f"/vsicurl/{image_url}", "Imagem Raster")
+                return
+            else:
+                # Tenta abrir como gz
+                iface.addRasterLayer(f"/vsigzip/{image_url}", "Imagem Raster")
                 return
         
         # Se não tiver o asset 'asset', procura por COG ou ZIP manualmente
@@ -941,6 +974,11 @@ class CatalogSelector(QWidget):
             elif asset_info.get('type') == 'application/zip':
                 zip_url = asset_info['href']
                 iface.addRasterLayer(f"/vsizip/{zip_url}", f"ZIP: {image_id}")
+                return
+            # Verifica GZ 
+            elif asset_info.get('type') == 'application/octet-stream':
+                gz_url = asset_info['href']
+                iface.addRasterLayer(f"/vsigzip/{gz_url}", f"GZ: {image_id}")
                 return
         
         QMessageBox.warning(self, "Erro", "Nenhum arquivo .ZIP ou .COG válido encontrado.")
@@ -957,6 +995,99 @@ class CatalogSelector(QWidget):
     def loading_finished(self):
         self.load_images_button.setEnabled(True) # Reabilita o botão após o carregamento
         print("Carregamento concluído!") # Ou qualquer outra ação que você precise
+
+
+    def preview_selected_image(self):
+        """Exibir pré-visualização da imagem quando selecionada na lista"""
+        selected_item = self.image_list.currentItem()
+        if not selected_item:
+            self.image_preview.setText("Nenhuma imagem selecionada")
+            return
+        
+        image_id = selected_item.text().split(" | ")[0]
+        selected_catalog = self.catalog_list.currentItem().text()
+        
+        # Construir a URL para pré-visualização da imagem com base no catálogo
+        catalog_url = None
+        
+        if selected_catalog == "Amazonia - 1/WFI":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/AMZ1-WFI-L4-SR-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/MUX CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4-MUX-L4-SR-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/MUX Data Cube":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS4-MUX-2M-1/items{image_id}"
+        elif selected_catalog == "CBERS - 4/WFI CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4-WFI-L4-SR-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/WFI Data Cube":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS4-WFI-16D-2/items/{image_id}"
+        elif selected_catalog == "CBERS - 4 Mosaico do brasil":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4-brazil-3m-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4A/WFI CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4A-WFI-L4-SR-1/items/{image_id}"
+        elif selected_catalog =="CBERS - 4A/WFI mosaico da paraíba":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-cbers4a-paraiba-3m-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4A/WPM Multi bands":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CB4A-WPM-PCA-FUSED-1/items/{image_id}"
+        elif selected_catalog == "CBERS - 4/WFI Data Cube - LCF 8 Dias":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/CBERS-WFI-8D-1/items/{image_id}"
+        elif selected_catalog == "GOES - 13 - Level 3 - VIS/IR (Binario)":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/GOES13-L3-IMAGER-1/items/{image_id}"
+        elif selected_catalog == "GOES - 16 CLOUD":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/GOES16-L2-CMI-1/items/{image_id}"
+        elif selected_catalog == "Landsat coleção 2 - Level-2":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/landsat-2/items/{image_id}"
+        elif selected_catalog == "Landsat coleção 2 - Level-2 - Data Cube - LCF 16 dias":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/LANDSAT-16D-1/items/{image_id}"
+        elif selected_catalog == "Landsat imagem mosaico do BRASIL - 6 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-brazil-6m-1/items/{image_id}"
+        elif selected_catalog == "Landsat imagem mosaico do bioma da Amazonia - 3 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-landsat-amazon-3m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-1 - Level-1 - Interferometric Wide Swath Ground Range Detected High Resolution":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/sentinel-1-grd-bundle-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-1C":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L1C_BUNDLE-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-2A":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L2A_BUNDLE-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 - Level-2A - Cloud Optimized GeoTIFF":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/S2_L2A-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 1 Meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-amazon-1m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da Amazonia - 3 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-amazon-3m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 2 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-cerrado-2m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-2 image mosaico do bioma da cerrado - 4 meses":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/mosaic-s2-cerrado-4m-1/items/{image_id}"
+        elif selected_catalog == "Sentinel-3/OLCI - Level-1B Full Resolution":
+            catalog_url = f"https://data.inpe.br/bdc/stac/v1/collections/sentinel-3-olci-l1-bundle-1/items/{image_id}"
+
+        if not catalog_url:
+            self.image_preview.setText("Pré-visualização não disponível")
+            return
+        
+        # Buscar a URL da imagem no JSON retornado
+        response = requests.get(catalog_url)
+        if response.status_code != 200:
+            self.image_preview.setText("Erro ao obter imagem")
+            return
+        
+        image_data = response.json()
+        image_url = None
+        
+        # Verificar os assets da imagem
+        for asset_name, asset_info in image_data.get('assets', {}).items():
+            if "thumbnail" in asset_name.lower() or "png" in asset_info.get('type', ''):
+                image_url = asset_info['href']
+                break  # Pegamos a primeira miniatura encontrada
+        
+        if not image_url:
+            self.image_preview.setText("Nenhuma pré-visualização disponível")
+            return
+        
+        # Carregar a imagem da web
+        pixmap = QPixmap()
+        pixmap.loadFromData(requests.get(image_url).content)
+        self.image_preview.setPixmap(pixmap)
 
 
 # Inicialização do aplicativo PyQt5
